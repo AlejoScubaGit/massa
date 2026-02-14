@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculadora de Massa - Pães / Pizzas / Levain</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 20px; background: #f9f9f9; color: #333; }
+    h1 { text-align: center; color: #2c3e50; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .inputs, .filters, .recipe-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .input-group { display: flex; align-items: center; gap: 15px; margin: 15px 0; flex-wrap: wrap; }
+    label { font-weight: bold; min-width: 240px; }
+    input, select { padding: 8px 12px; font-size: 1.05em; border: 1px solid #ccc; border-radius: 6px; }
+    input[type="number"] { width: 140px; }
+    input[type="range"] { width: 200px; }
+    input[type="checkbox"] { width: 20px; height: 20px; margin-right: 5px; }
+    button { padding: 10px 24px; background: #34495e; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1.05em; margin-right: 10px; }
+    button:hover { background: #1e3a5f; }
+    .mode-info { font-size: 1.1em; margin: 15px 0; color: #444; }
+    .warning { color: #c0392b; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 3px 12px rgba(0,0,0,0.12); }
+    th, td { padding: 12px; text-align: center; border: 1px solid #ddd; }
+    th { background: #34495e; color: white; }
+    tr:nth-child(even) { background: #f8fbff; }
+    tr.hidden { display: none; }
+    .no-results { text-align: center; padding: 40px; color: #777; font-style: italic; }
+    .button-group { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+    .download-btn { background: #27ae60; }
+    .download-btn:hover { background: #219a52; }
+    .radio-group { display: flex; gap: 20px; margin-left: 10px; }
+    .radio-group label { min-width: auto; font-weight: normal; }
+    
+    /* Estilo para o card de receita */
+    .recipe-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 25px;
+      margin: 20px 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .recipe-title {
+      font-size: 1.5em;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 2px solid rgba(255,255,255,0.3);
+      padding-bottom: 10px;
+    }
+    .recipe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .recipe-item {
+      background: rgba(255,255,255,0.15);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s;
+    }
+    .recipe-item:hover {
+      transform: translateY(-5px);
+      background: rgba(255,255,255,0.25);
+    }
+    .recipe-item-label {
+      font-size: 0.9em;
+      opacity: 0.9;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .recipe-item-value {
+      font-size: 2em;
+      font-weight: bold;
+    }
+    .recipe-item-unit {
+      font-size: 0.8em;
+      opacity: 0.8;
+      margin-left: 5px;
+    }
+    .recipe-highlight {
+      background: rgba(255,215,0,0.2);
+      border: 2px solid gold;
+    }
+    .recipe-note {
+      text-align: center;
+      margin-top: 20px;
+      font-style: italic;
+      opacity: 0.9;
+      font-size: 0.95em;
+    }
+    .fermento-info {
+      font-size: 0.85em;
+      margin-top: 5px;
+      color: #ffd700;
+    }
+    .fermento-opcoes {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-left: 20px;
+    }
+    .fermento-opcoes label {
+      min-width: auto;
+      font-weight: normal;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Calculadora de Massa - Pães / Pizzas / Levain</h1>
+
+  <div class="inputs">
+    <div class="input-group">
+      <label>Tipo de Massa:</label>
+      <div class="radio-group">
+        <label><input type="radio" name="tipoMassa" value="pao" checked onclick="toggleModos()"> Massa de Pão / Focaccia / Ciabatta</label>
+        <label><input type="radio" name="tipoMassa" value="pizza" onclick="toggleModos()"> Massa de Pizza</label>
+      </div>
+    </div>
+
+    <div id="modoPao" style="display: block;">
+      <h3>Modo Massa de Pão / Focaccia / Ciabatta</h3>
+      <div class="input-group">
+        <label for="farinhaBase">Farinha base (FA) em gramas:</label>
+        <input type="number" id="farinhaBase" placeholder="ex: 1000" min="100" step="10" value="1000">
+        <span style="color: #666; font-size: 0.95em;">(farinha adicionada diretamente)</span>
+      </div>
+    </div>
+
+    <div id="modoPizza" style="display: none;">
+      <h3>Modo Massa de Pizza</h3>
+      <div class="input-group">
+        <label for="numPizzas">Número de pizzas:</label>
+        <input type="number" id="numPizzas" placeholder="ex: 8" min="1" step="1" value="8" style="width:100px;">
+        <label for="pesoPizza" style="min-width:auto;">Peso por pizza (g):</label>
+        <input type="number" id="pesoPizza" placeholder="300" min="50" step="10" value="300" style="width:100px;">
+      </div>
+      <div class="input-group">
+        <label for="azeitePct">Azeite de Oliva (% da Massa Total - opcional):</label>
+        <input type="number" id="azeitePct" min="0" max="5" step="0.5" value="0" style="width:100px;">
+        <span style="color: #666; font-size: 0.95em;">(0-5%)</span>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label for="levainPct">Percentual de levain (Le % da farinha base FA):</label>
+      <input type="number" id="levainPct" min="5" max="50" step="5" value="20" style="width:100px;">
+      <input type="range" id="levainSlider" min="5" max="50" step="5" value="20">
+      <span id="levainValue">20%</span>
+    </div>
+
+    <div class="input-group">
+      <label for="salPct">Percentual de sal (% da farinha base FA):</label>
+      <input type="number" id="salPct" min="2" max="4" step="0.5" value="3" style="width:100px;">
+      <input type="range" id="salSlider" min="2" max="4" step="0.5" value="3">
+      <span id="salValue">3%</span>
+    </div>
+
+    <div class="input-group">
+      <label style="min-width: 240px;">Fermento biológico seco (opcional):</label>
+      <div class="fermento-opcoes">
+        <label>
+          <input type="radio" name="fermentoOpcao" value="0" checked> Sem fermento
+        </label>
+        <label>
+          <input type="radio" name="fermentoOpcao" value="0.5"> 0,5g/kg farinha base
+        </label>
+        <label>
+          <input type="radio" name="fermentoOpcao" value="1.0"> 1,0g/kg farinha base
+        </label>
+      </div>
+    </div>
+
+    <div class="input-group button-group">
+      <button onclick="calcular()">Calcular</button>
+      <button id="downloadExcelBtn" class="download-btn" onclick="downloadExcel()" disabled>📥 Download Excel</button>
+    </div>
+
+    <div id="modoInfo" class="mode-info"></div>
+  </div>
+
+  <div class="filters">
+    <div class="input-group">
+      <label for="hidratacao">Hidratação desejada (HI):</label>
+      <select id="hidratacao">
+        <option value="todos">Todos</option>
+        <option value="60">60%</option>
+        <option value="65">65%</option>
+        <option value="70">70%</option>
+        <option value="75">75%</option>
+        <option value="80">80%</option>
+        <option value="85">85%</option>
+        <option value="90">90%</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label for="tipoLevain">Tipo de Levain (isca:água:farinha):</label>
+      <select id="tipoLevain">
+        <option value="todos">Todos</option>
+        <option value="1:1:1">1:1:1</option>
+        <option value="1:2:2">1:2:2</option>
+        <option value="1:2:3">1:2:3</option>
+        <option value="1:3:3">1:3:3</option>
+        <option value="1:4:4">1:4:4</option>
+        <option value="1:5:5">1:5:5</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Card de Receita Destacada -->
+  <div id="recipeCard" class="recipe-card" style="display: none;">
+    <div class="recipe-title" id="recipeTitle">📋 RECEITA SELECIONADA</div>
+    <div class="recipe-grid" id="recipeGrid">
+      <!-- Os itens serão preenchidos via JavaScript -->
+    </div>
+    <div class="recipe-note" id="recipeNote"></div>
+  </div>
+
+  <div id="resultado" class="mode-info"></div>
+
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>Hidratação (HI)</th>
+        <th>Levain %</th>
+        <th>Tipo Levain</th>
+        <th>Farinha Base FA (g)</th>
+        <th>Levain Total (g)</th>
+        <th>Água Adicional (g)</th>
+        <th>Sal %</th>
+        <th>Sal (g)</th>
+        <th>Fermento (g/kg)</th>
+        <th>Fermento (g)</th>
+        <th>Farinha no Levain (g)</th>
+        <th>Farinha Total (g)</th>
+        <th>Água no Levain (g)</th>
+        <th>Água Total (g)</th>
+        <th>Azeite (g)</th>
+        <th>Massa Total (g)</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <div id="noResults" class="no-results hidden">Nenhuma combinação encontrada.</div>
+</div>
+
+<script>
+// Função para alternar entre modos
+function toggleModos() {
+  const tipoMassa = document.querySelector('input[name="tipoMassa"]:checked').value;
+  document.getElementById('modoPao').style.display = tipoMassa === 'pao' ? 'block' : 'none';
+  document.getElementById('modoPizza').style.display = tipoMassa === 'pizza' ? 'block' : 'none';
+}
+
+// Sincronizar slider e input de % levain
+const levainInput = document.getElementById("levainPct");
+const levainSlider = document.getElementById("levainSlider");
+const levainValue = document.getElementById("levainValue");
+
+function updateLevain(val) {
+  val = Math.max(5, Math.min(50, val));
+  levainInput.value = val;
+  levainSlider.value = val;
+  levainValue.textContent = val + "%";
+}
+
+levainInput.addEventListener("input", () => updateLevain(levainInput.value));
+levainSlider.addEventListener("input", () => updateLevain(levainSlider.value));
+
+// Sincronizar slider e input de % sal
+const salInput = document.getElementById("salPct");
+const salSlider = document.getElementById("salSlider");
+const salValue = document.getElementById("salValue");
+
+function updateSal(val) {
+  val = Math.max(2, Math.min(4, val));
+  salInput.value = val;
+  salSlider.value = val;
+  salValue.textContent = val + "%";
+}
+
+salInput.addEventListener("input", () => updateSal(salInput.value));
+salSlider.addEventListener("input", () => updateSal(salSlider.value));
+
+// Dados base – combinações de hidratação e tipo de levain
+const combinacoes = [
+  {hid: 60, tipo: "1:1:1"}, {hid: 60, tipo: "1:2:2"}, {hid: 60, tipo: "1:2:3"}, {hid: 60, tipo: "1:3:3"}, {hid: 60, tipo: "1:4:4"}, {hid: 60, tipo: "1:5:5"},
+  {hid: 65, tipo: "1:1:1"}, {hid: 65, tipo: "1:2:2"}, {hid: 65, tipo: "1:2:3"}, {hid: 65, tipo: "1:3:3"}, {hid: 65, tipo: "1:4:4"}, {hid: 65, tipo: "1:5:5"},
+  {hid: 70, tipo: "1:1:1"}, {hid: 70, tipo: "1:2:2"}, {hid: 70, tipo: "1:2:3"}, {hid: 70, tipo: "1:3:3"}, {hid: 70, tipo: "1:4:4"}, {hid: 70, tipo: "1:5:5"},
+  {hid: 75, tipo: "1:1:1"}, {hid: 75, tipo: "1:2:2"}, {hid: 75, tipo: "1:2:3"}, {hid: 75, tipo: "1:3:3"}, {hid: 75, tipo: "1:4:4"}, {hid: 75, tipo: "1:5:5"},
+  {hid: 80, tipo: "1:1:1"}, {hid: 80, tipo: "1:2:2"}, {hid: 80, tipo: "1:2:3"}, {hid: 80, tipo: "1:3:3"}, {hid: 80, tipo: "1:4:4"}, {hid: 80, tipo: "1:5:5"},
+  {hid: 85, tipo: "1:1:1"}, {hid: 85, tipo: "1:2:2"}, {hid: 85, tipo: "1:2:3"}, {hid: 85, tipo: "1:3:3"}, {hid: 85, tipo: "1:4:4"}, {hid: 85, tipo: "1:5:5"},
+  {hid: 90, tipo: "1:1:1"}, {hid: 90, tipo: "1:2:2"}, {hid: 90, tipo: "1:2:3"}, {hid: 90, tipo: "1:3:3"}, {hid: 90, tipo: "1:4:4"}, {hid: 90, tipo: "1:5:5"}
+];
+
+// Armazenar os dados calculados para download
+let dadosCalculados = [];
+
+// Função para calcular fermento (0,5g ou 1,0g por kg de farinha base FA)
+function calcularFermento(farinhaFA) {
+  const fermentoOpcao = document.querySelector('input[name="fermentoOpcao"]:checked').value;
+  if (fermentoOpcao === "0") return 0;
+  
+  const fator = parseFloat(fermentoOpcao);
+  return Math.round(farinhaFA / 1000 * fator * 100) / 100; // Arredonda para 2 casas decimais
+}
+
+// Função para obter o texto do fermento
+function getFermentoTexto() {
+  const fermentoOpcao = document.querySelector('input[name="fermentoOpcao"]:checked').value;
+  if (fermentoOpcao === "0") return "Sem fermento";
+  return fermentoOpcao.replace('.', ',') + "g/kg";
+}
+
+// Função para atualizar o card de receita
+function updateRecipeCard(linhaDados, tipoMassa, azeitePct) {
+  const recipeCard = document.getElementById('recipeCard');
+  const recipeGrid = document.getElementById('recipeGrid');
+  const recipeNote = document.getElementById('recipeNote');
+  const recipeTitle = document.getElementById('recipeTitle');
+  
+  // Atualizar título com os parâmetros selecionados
+  const hidSelect = document.getElementById('hidratacao');
+  const tipoSelect = document.getElementById('tipoLevain');
+  const hidValue = hidSelect.value !== 'todos' ? hidSelect.value : linhaDados.hidratacao;
+  const tipoValue = tipoSelect.value !== 'todos' ? tipoSelect.value : linhaDados.tipoLevain;
+  
+  recipeTitle.innerHTML = `📋 RECEITA - ${hidValue}% Hidratação | ${tipoValue}`;
+  
+  // Verificar se tem fermento
+  const temFermento = linhaDados.fermentoGramas > 0;
+  const fermentoTexto = getFermentoTexto();
+  
+  // Criar os itens da receita
+  recipeGrid.innerHTML = `
+    <div class="recipe-item">
+      <div class="recipe-item-label">🌾 Farinha</div>
+      <div class="recipe-item-value">${linhaDados.farinhaFA}<span class="recipe-item-unit">g</span></div>
+    </div>
+    <div class="recipe-item">
+      <div class="recipe-item-label">💧 Água</div>
+      <div class="recipe-item-value">${linhaDados.aguaAdicional}<span class="recipe-item-unit">g</span></div>
+    </div>
+    <div class="recipe-item">
+      <div class="recipe-item-label">🍞 Levain</div>
+      <div class="recipe-item-value">${linhaDados.levainTotal}<span class="recipe-item-unit">g</span></div>
+    </div>
+    <div class="recipe-item">
+      <div class="recipe-item-label">🧂 Sal</div>
+      <div class="recipe-item-value">${linhaDados.sal}<span class="recipe-item-unit">g</span></div>
+    </div>
+    ${temFermento ? `
+    <div class="recipe-item recipe-highlight">
+      <div class="recipe-item-label">⚡ Fermento Seco</div>
+      <div class="recipe-item-value">${linhaDados.fermentoGramas.toFixed(1)}<span class="recipe-item-unit">g</span></div>
+      <div class="fermento-info">(${fermentoTexto} farinha base)</div>
+    </div>
+    ` : ''}
+    ${tipoMassa === 'pizza' && linhaDados.azeite > 0 ? `
+    <div class="recipe-item recipe-highlight">
+      <div class="recipe-item-label">🫒 Azeite</div>
+      <div class="recipe-item-value">${linhaDados.azeite}<span class="recipe-item-unit">g</span></div>
+    </div>
+    ` : ''}
+  `;
+  
+  // Adicionar nota explicativa
+  let nota = `Massa total: ${linhaDados.massaTotal}g | Farinha total: ${linhaDados.farinhaTotal}g (${linhaDados.farinhaFA}g base + ${linhaDados.farinhaNoLevain}g do levain)`;
+  if (temFermento) {
+    nota += ` | Fermento: ${linhaDados.fermentoGramas.toFixed(1)}g (${fermentoTexto})`;
+  }
+  if (tipoMassa === 'pizza') {
+    const numPizzas = document.getElementById('numPizzas').value;
+    const pesoPizza = document.getElementById('pesoPizza').value;
+    nota += ` | ${numPizzas} pizzas de ${pesoPizza}g cada`;
+  }
+  recipeNote.innerHTML = nota;
+  
+  // Mostrar o card
+  recipeCard.style.display = 'block';
+}
+
+function calcular() {
+  const tipoMassa = document.querySelector('input[name="tipoMassa"]:checked').value;
+  
+  // Inputs comuns
+  const levainPct = parseFloat(document.getElementById("levainPct").value) / 100 || 0.20;
+  const salPct = parseFloat(document.getElementById("salPct").value) / 100 || 0.03;
+  
+  // Inputs específicos
+  const farinhaBase = tipoMassa === 'pao' ? parseFloat(document.getElementById("farinhaBase").value) || 0 : 0;
+  const numPizzas = tipoMassa === 'pizza' ? parseFloat(document.getElementById("numPizzas").value) || 0 : 0;
+  const pesoPizza = tipoMassa === 'pizza' ? parseFloat(document.getElementById("pesoPizza").value) || 300 : 0;
+  const azeitePct = tipoMassa === 'pizza' ? parseFloat(document.getElementById("azeitePct").value) / 100 || 0 : 0;
+
+  const modoInfo = document.getElementById("modoInfo");
+  const resultado = document.getElementById("resultado");
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  
+  // Limpar dados calculados anteriores
+  dadosCalculados = [];
+
+  // Esconder o card de receita enquanto recalcula
+  document.getElementById('recipeCard').style.display = 'none';
+
+  // Validações
+  if (tipoMassa === 'pao' && farinhaBase <= 0) {
+    modoInfo.innerHTML = '<span class="warning">Informe a farinha base (FA) em gramas.</span>';
+    document.getElementById("downloadExcelBtn").disabled = true;
+    return;
+  }
+  
+  if (tipoMassa === 'pizza' && (numPizzas <= 0 || pesoPizza <= 0)) {
+    modoInfo.innerHTML = '<span class="warning">Informe o número de pizzas e o peso por pizza.</span>';
+    document.getElementById("downloadExcelBtn").disabled = true;
+    return;
+  }
+
+  // Informações do modo
+  if (tipoMassa === 'pao') {
+    modoInfo.innerHTML = `Modo PÃO: <strong>${farinhaBase} g de farinha base (FA)</strong> + levain ${Math.round(levainPct*100)}% da FA`;
+    resultado.innerHTML = "Cálculo conforme fórmulas para massa de pão/focaccia/ciabatta";
+  } else {
+    const massaTotalRef = numPizzas * pesoPizza;
+    modoInfo.innerHTML = `Modo PIZZA: <strong>${numPizzas} pizzas</strong> de <strong>${pesoPizza}g</strong> (${massaTotalRef} g total)`;
+    resultado.innerHTML = `Cálculo conforme fórmulas para massa de pizza ${azeitePct > 0 ? 'com ' + (azeitePct*100) + '% de azeite' : 'sem azeite'}`;
+  }
+  
+  const fermentoTexto = getFermentoTexto();
+  if (fermentoTexto !== "Sem fermento") {
+    resultado.innerHTML += ` | Com fermento seco (${fermentoTexto})`;
+  }
+
+  // Para cada combinação de hidratação e tipo de levain
+  combinacoes.forEach(d => {
+    const hidratacaoDesejada = d.hid / 100;
+    
+    // Extrair proporções do tipo de levain (isca:água:farinha)
+    const partes = d.tipo.split(':').map(Number);
+    const l = partes[0]; // isca (não entra no cálculo de farinha/água do levain)
+    const a = partes[1]; // água
+    const f = partes[2]; // farinha
+    const totalPartes = l + a + f;
+    
+    let farinhaFA = 0;
+    let levainTotal = 0;
+    let farinhaNoLevain = 0;
+    let farinhaTotal = 0;
+    let aguaNoLevain = 0;
+    let aguaAdicional = 0;
+    let aguaTotal = 0;
+    let sal = 0;
+    let azeite = 0;
+    let fermentoGramas = 0;
+    let massaTotal = 0;
+
+    if (tipoMassa === 'pao') {
+      // MODO PÃO
+      farinhaFA = farinhaBase;
+      levainTotal = farinhaFA * levainPct;
+      farinhaNoLevain = levainTotal * (f / totalPartes);
+      aguaNoLevain = levainTotal * (a / totalPartes);
+      farinhaTotal = farinhaFA + farinhaNoLevain;
+      aguaAdicional = (farinhaFA + farinhaNoLevain) * hidratacaoDesejada - aguaNoLevain;
+      aguaTotal = aguaNoLevain + aguaAdicional;
+      sal = farinhaFA * salPct;
+      fermentoGramas = calcularFermento(farinhaFA);
+      massaTotal = farinhaFA + levainTotal + aguaAdicional + sal + fermentoGramas;
+      
+    } else {
+      // MODO PIZZA
+      const massaTotalRef = numPizzas * pesoPizza;
+      azeite = massaTotalRef * azeitePct;
+      
+      // Cálculo da farinha base (FA)
+      const termo1 = 1;
+      const termo2 = levainPct;
+      const termo3 = hidratacaoDesejada;
+      const termo4 = hidratacaoDesejada * levainPct * (f / totalPartes);
+      const termo5 = levainPct * (a / totalPartes);
+      
+      const denominador = termo1 + termo2 + termo3 + termo4 - termo5;
+      const numerador = massaTotalRef - azeite;
+      const denominadorFinal = denominador + salPct;
+      
+      farinhaFA = numerador / denominadorFinal;
+      
+      // Agora calculamos os demais componentes
+      levainTotal = farinhaFA * levainPct;
+      farinhaNoLevain = levainTotal * (f / totalPartes);
+      aguaNoLevain = levainTotal * (a / totalPartes);
+      farinhaTotal = farinhaFA + farinhaNoLevain;
+      aguaAdicional = (farinhaFA + farinhaNoLevain) * hidratacaoDesejada - aguaNoLevain;
+      aguaTotal = aguaNoLevain + aguaAdicional;
+      sal = farinhaFA * salPct;
+      fermentoGramas = calcularFermento(farinhaFA);
+      massaTotal = farinhaFA + levainTotal + aguaAdicional + sal + azeite + fermentoGramas;
+    }
+
+    // Armazenar dados para download
+    const linhaDados = {
+      hidratacao: d.hid,
+      levainPct: Math.round(levainPct * 100),
+      tipoLevain: d.tipo,
+      farinhaFA: Math.round(farinhaFA),
+      levainTotal: Math.round(levainTotal),
+      aguaAdicional: Math.round(aguaAdicional),
+      salPct: (salPct * 100).toFixed(1),
+      sal: Math.round(sal),
+      fermentoValor: getFermentoTexto(),
+      fermentoGramas: fermentoGramas,
+      farinhaNoLevain: Math.round(farinhaNoLevain),
+      farinhaTotal: Math.round(farinhaTotal),
+      aguaNoLevain: Math.round(aguaNoLevain),
+      aguaTotal: Math.round(aguaTotal),
+      azeite: Math.round(azeite),
+      massaTotal: Math.round(massaTotal)
+    };
+    
+    dadosCalculados.push(linhaDados);
+
+    // Criar linha na tabela
+    const tr = document.createElement("tr");
+    tr.setAttribute("data-hid", d.hid);
+    tr.setAttribute("data-tipo", d.tipo);
+    tr.innerHTML = `
+      <td>${d.hid}%</td>
+      <td>${Math.round(levainPct * 100)}%</td>
+      <td>${d.tipo}</td>
+      <td>${Math.round(farinhaFA)}</td>
+      <td>${Math.round(levainTotal)}</td>
+      <td>${Math.round(aguaAdicional)}</td>
+      <td>${(salPct * 100).toFixed(1)}%</td>
+      <td>${Math.round(sal)}</td>
+      <td>${getFermentoTexto()}</td>
+      <td>${fermentoGramas.toFixed(1)}</td>
+      <td>${Math.round(farinhaNoLevain)}</td>
+      <td>${Math.round(farinhaTotal)}</td>
+      <td>${Math.round(aguaNoLevain)}</td>
+      <td>${Math.round(aguaTotal)}</td>
+      <td>${Math.round(azeite)}</td>
+      <td>${Math.round(massaTotal)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Habilitar botão de download
+  document.getElementById("downloadExcelBtn").disabled = false;
+  filterTable();
+  
+  // Atualizar o card de receita com a primeira linha (ou linha filtrada)
+  setTimeout(() => {
+    const rows = document.querySelectorAll("#tabela tbody tr:not(.hidden)");
+    if (rows.length > 0) {
+      const primeiraLinha = rows[0];
+      const cells = primeiraLinha.cells;
+      const linhaDados = {
+        hidratacao: cells[0].innerText.replace('%', ''),
+        levainPct: cells[1].innerText.replace('%', ''),
+        tipoLevain: cells[2].innerText,
+        farinhaFA: parseInt(cells[3].innerText),
+        levainTotal: parseInt(cells[4].innerText),
+        aguaAdicional: parseInt(cells[5].innerText),
+        sal: parseInt(cells[7].innerText),
+        fermentoGramas: parseFloat(cells[9].innerText.replace(',', '.')),
+        farinhaNoLevain: parseInt(cells[10].innerText),
+        farinhaTotal: parseInt(cells[11].innerText),
+        azeite: parseInt(cells[14].innerText),
+        massaTotal: parseInt(cells[15].innerText)
+      };
+      updateRecipeCard(linhaDados, tipoMassa, azeitePct);
+    }
+  }, 100);
+}
+
+function filterTable() {
+  const hid = document.getElementById("hidratacao").value;
+  const tipo = document.getElementById("tipoLevain").value;
+  const rows = document.querySelectorAll("#tabela tbody tr");
+  let visiveis = 0;
+  let primeiraLinhaVisivel = null;
+
+  rows.forEach(row => {
+    const matchHid = (hid === "todos" || row.getAttribute("data-hid") === hid);
+    const matchTipo = (tipo === "todos" || row.getAttribute("data-tipo") === tipo);
+    if (matchHid && matchTipo) {
+      row.classList.remove("hidden");
+      visiveis++;
+      if (!primeiraLinhaVisivel) primeiraLinhaVisivel = row;
+    } else {
+      row.classList.add("hidden");
+    }
+  });
+
+  document.getElementById("noResults").classList.toggle("hidden", visiveis > 0);
+  
+  // Atualizar o card de receita com a primeira linha visível
+  if (visiveis > 0 && primeiraLinhaVisivel) {
+    const tipoMassa = document.querySelector('input[name="tipoMassa"]:checked').value;
+    const azeitePct = tipoMassa === 'pizza' ? parseFloat(document.getElementById("azeitePct").value) / 100 || 0 : 0;
+    
+    const cells = primeiraLinhaVisivel.cells;
+    const linhaDados = {
+      hidratacao: cells[0].innerText.replace('%', ''),
+      levainPct: cells[1].innerText.replace('%', ''),
+      tipoLevain: cells[2].innerText,
+      farinhaFA: parseInt(cells[3].innerText),
+      levainTotal: parseInt(cells[4].innerText),
+      aguaAdicional: parseInt(cells[5].innerText),
+      sal: parseInt(cells[7].innerText),
+      fermentoGramas: parseFloat(cells[9].innerText.replace(',', '.')),
+      farinhaNoLevain: parseInt(cells[10].innerText),
+      farinhaTotal: parseInt(cells[11].innerText),
+      azeite: parseInt(cells[14].innerText),
+      massaTotal: parseInt(cells[15].innerText)
+    };
+    updateRecipeCard(linhaDados, tipoMassa, azeitePct);
+  } else {
+    document.getElementById('recipeCard').style.display = 'none';
+  }
+}
+
+function downloadExcel() {
+  if (dadosCalculados.length === 0) {
+    alert("Nenhum dado para exportar. Execute um cálculo primeiro.");
+    return;
+  }
+
+  const tipoMassa = document.querySelector('input[name="tipoMassa"]:checked').value;
+  const farinhaBase = document.getElementById("farinhaBase").value;
+  const numPizzas = document.getElementById("numPizzas").value;
+  const pesoPizza = document.getElementById("pesoPizza").value;
+  const azeitePct = document.getElementById("azeitePct").value;
+  const levainPct = document.getElementById("levainPct").value;
+  const salPct = document.getElementById("salPct").value;
+  const fermentoTexto = getFermentoTexto();
+  
+  let cabecalhoInfo = [];
+  if (tipoMassa === 'pao') {
+    cabecalhoInfo.push(`Modo: PÃO - Farinha Base (FA) = ${farinhaBase}g`);
+  } else {
+    cabecalhoInfo.push(`Modo: PIZZA - ${numPizzas} pizzas de ${pesoPizza}g = ${numPizzas * pesoPizza}g total`);
+    if (azeitePct > 0) cabecalhoInfo.push(`Azeite: ${azeitePct}% da Massa Total`);
+  }
+  cabecalhoInfo.push(`Levain: ${levainPct}% da FA`);
+  cabecalhoInfo.push(`Sal: ${salPct}% da FA`);
+  if (fermentoTexto !== "Sem fermento") cabecalhoInfo.push(`Fermento: ${fermentoTexto} farinha base`);
+  
+  const dataAtual = new Date();
+  const dataFormatada = dataAtual.toLocaleDateString('pt-BR') + ' ' + dataAtual.toLocaleTimeString('pt-BR');
+
+  // Criar conteúdo CSV
+  let csvContent = "Relatório de Cálculo de Massa\n";
+  csvContent += "Gerado em: " + dataFormatada + "\n";
+  csvContent += cabecalhoInfo.join(" | ") + "\n\n";
+  
+  // Cabeçalho das colunas
+  csvContent += "Hidratação (HI);Levain %;Tipo Levain;Farinha Base FA (g);Levain Total (g);";
+  csvContent += "Água Adicional (g);Sal %;Sal (g);Fermento (g/kg);Fermento (g);Farinha no Levain (g);";
+  csvContent += "Farinha Total (g);Água no Levain (g);Água Total (g);Azeite (g);Massa Total (g)\n";
+  
+  // Dados
+  dadosCalculados.forEach(row => {
+    csvContent += `${row.hidratacao}%;${row.levainPct}%;${row.tipoLevain};`;
+    csvContent += `${row.farinhaFA};${row.levainTotal};${row.aguaAdicional};`;
+    csvContent += `${row.salPct}%;${row.sal};${row.fermentoValor};${row.fermentoGramas.toFixed(1)};${row.farinhaNoLevain};`;
+    csvContent += `${row.farinhaTotal};${row.aguaNoLevain};${row.aguaTotal};`;
+    csvContent += `${row.azeite};${row.massaTotal}\n`;
+  });
+
+  // Criar nome do arquivo
+  let nomeArquivo = tipoMassa === 'pao' ? 'pao' : 'pizza';
+  nomeArquivo += "_calculadora_";
+  if (tipoMassa === 'pao') {
+    nomeArquivo += `FA${farinhaBase}g`;
+  } else {
+    nomeArquivo += `${numPizzas}pizzas_${pesoPizza}g`;
+  }
+  nomeArquivo += `_levain${levainPct}%_sal${salPct}%`;
+  if (fermentoTexto !== "Sem fermento") {
+    nomeArquivo += `_fermento${fermentoTexto.replace(',', '').replace('g/kg', '')}`;
+  }
+  nomeArquivo += `.csv`;
+
+  // Download do arquivo
+  const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", nomeArquivo);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("hidratacao").addEventListener("change", filterTable);
+document.getElementById("tipoLevain").addEventListener("change", filterTable);
+
+// Inicializar
+toggleModos();
+</script>
+
+</body>
+</html>
